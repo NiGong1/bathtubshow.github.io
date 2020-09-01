@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>浴缸展示</title>
+    <style type="text/css">
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body onload="draw();">
+</body>
+<script src="../build/three.min.js"></script>
+<!-- <script src="src/extras/ImageUtils.js"></script> -->
+<script src="../examples/js/controls/OrbitControls.js"></script>
+<script src="../examples/js/loaders/OBJLoader.js"></script>
+<script src="../examples/js/loaders/DRACOLoader.js"></script>
+<script src="../examples/js/loaders/GLTFLoader.js"></script>
+<script src="../examples/js/libs/stats.min.js"></script>
+<script src="../examples/js/libs/dat.gui.min.js"></script>
+<script src="../bathtubjs/6020copy.js"></script>
+<!-- <script src="/lib/js/Detector.js"></script> -->
+
+<script>
+    // 定义场景需要使用的全局变量
+    var renderer, camera, scene, light, stats, controls, lightProbe, Mgui, Lgui;
+    var API = {
+				cameraX: 100,
+				cameraY: 100,
+				cameraZ: 100
+            };
+    // 定义材质球
+    // var API = {
+	// 	lightProbeIntensity: 1.0,
+	// 	directionalLightIntensity: 0.2,
+	// 	// envMapIntensity: 1
+	// };
+
+    function initRender() {
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0xeeeeee);
+        renderer.shadowMap.enabled = true;
+        //告诉渲染器需要阴影效果
+        document.body.appendChild(renderer.domElement);
+    }
+
+    function initCamera() {
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 20, 40);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+    }
+
+    
+    function initScene() {
+        scene = new THREE.Scene();
+    }
+
+    function initLight() {
+        // scene.add(new THREE.AmbientLight(0xffffff));
+
+        lightProbe = new THREE.LightProbe();
+        scene.add( lightProbe );
+                
+        Dlight = new THREE.DirectionalLight(0x333333);
+        Dlight.position.set(0, 20, -20 );
+        //告诉平行光需要开启阴影投射
+        Dlight.castShadow = true;
+
+        scene.add(Dlight);
+        Blight = new THREE.DirectionalLight(0x333333);
+        Blight.position.set(-20, 20, -20 );
+        Blight.castShadow = true;
+
+        scene.add(Blight);
+
+
+        scene.add(new THREE.AmbientLight(0x888888));
+        light = new THREE.PointLight(0x666666);
+        light.position.set(50,50,50);
+        //告诉平行光需要开启阴影投射
+        light.castShadow = true;
+        scene.add(light);
+    }
+    
+    function initgui(){
+    //声明一个保存需求修改的相关数据的对象
+        Mgui = {
+            白色:function(){
+                MAcrylicMaterial.color.set(0xffffff);
+            },
+            黑色:function(){
+                MAcrylicMaterial.color.set(0x222222);
+            },
+            墨绿色:function(){
+                MAcrylicMaterial.color.set(0x032126);
+            },
+            红色:function(){
+                MAcrylicMaterial.color.set(0xcc0924);
+            },
+            蓝色:function(){
+                MAcrylicMaterial.color.set(0x1e51b9);
+            },
+            粉红色:function(){
+                MAcrylicMaterial.color.set(0xde55bf);
+            },
+            灰色:function(){
+                MAcrylicMaterial.color.set(0x666666);
+            }
+        };
+        Lgui = {
+            白色:function(){
+                LAcrylicMaterial.color.set(0xffffff);
+            },
+            黑色:function(){
+                LAcrylicMaterial.color.set(0x222222);
+            },
+            墨绿色:function(){
+                LAcrylicMaterial.color.set(0x032126);
+            },
+            红色:function(){
+                LAcrylicMaterial.color.set(0xcc0924);
+            },
+            蓝色:function(){
+                LAcrylicMaterial.color.set(0x1e51b9);
+            },
+            粉红色:function(){
+                LAcrylicMaterial.color.set(0xde55bf);
+            },
+            灰色:function(){
+                LAcrylicMaterial.color.set(0x666666);
+            }
+        };
+        var datGui = new dat.GUI();
+        //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
+        MfolderLocal = datGui.addFolder("内层浴缸颜色")
+        MfolderLocal.add(Mgui, "白色")
+        MfolderLocal.add(Mgui, "黑色")
+        MfolderLocal.add(Mgui, "墨绿色")
+        MfolderLocal.add(Mgui, "红色")
+        MfolderLocal.add(Mgui, "蓝色")
+        MfolderLocal.add(Mgui, "粉红色")
+        MfolderLocal.add(Mgui, "灰色")
+
+        LfolderLocal = datGui.addFolder("外层浴缸颜色")
+        LfolderLocal.add(Lgui, "白色")
+        LfolderLocal.add(Lgui, "黑色")
+        LfolderLocal.add(Lgui, "墨绿色")
+        LfolderLocal.add(Lgui, "红色")
+        LfolderLocal.add(Lgui, "蓝色")
+        LfolderLocal.add(Lgui, "粉红色")
+        LfolderLocal.add(Lgui, "灰色")
+        }
+
+    //初始化性能插件
+    function initStats() {
+        stats = new Stats();
+        document.body.appendChild(stats.dom);
+    }
+
+    function initControls() {
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        //设置控制器的中心点
+        //controls.target.set( 0, 5, 0 );
+        // 如果使用animate方法时，将此函数删除
+        //controls.addEventListener( 'change', render );
+        // 使动画循环使用时阻尼或自转 意思是否有惯性
+        controls.enableDamping = true;
+        //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+        //controls.dampingFactor = 0.25;
+        //是否可以缩放
+        controls.enableZoom = true;
+        //是否自动旋转
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1;
+        //设置相机距离原点的最远距离
+        controls.minDistance = 1;
+        //设置相机距离原点的最远距离
+        controls.maxDistance = 2000;
+        //是否开启右键拖拽
+        controls.enablePan = false;
+    }
+
+    function render() {
+
+    }
+
+    //窗口变动触发的函数
+    function onWindowResize() {
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+    }
+
+    function animate() {
+        //更新控制器
+        render();
+
+        //更新性能插件
+        stats.update();
+
+        controls.update();
+
+        renderer.render(scene, camera);
+
+        requestAnimationFrame(animate);
+    }
+
+    function draw() {
+        //兼容性判断
+        // if (!Detector.webgl) Detector.addGetWebGLMessage();
+        initgui();
+        initRender();
+        initScene();
+        initCamera();
+        initLight();
+        initModel();
+        initControls();
+        initStats();
+
+        animate();
+        window.onresize = onWindowResize;
+    }
+
+
+</script>
+</html>
